@@ -29,13 +29,14 @@ def test_graphviz_toy():
     export_graphviz(clf, out_file=out)
     contents1 = out.getvalue()
     contents2 = "digraph Tree {\n" \
+                "node [shape=box] ;\n" \
                 "0 [label=\"X[0] <= 0.0000\\ngini = 0.5\\n" \
-                "samples = 6\", shape=\"box\"] ;\n" \
+                "samples = 6\"] ;\n" \
                 "1 [label=\"gini = 0.0000\\nsamples = 3\\n" \
-                "value = [ 3.  0.]\", shape=\"box\"] ;\n" \
+                "value = [ 3.  0.]\"] ;\n" \
                 "0 -> 1 ;\n" \
                 "2 [label=\"gini = 0.0000\\nsamples = 3\\n" \
-                "value = [ 0.  3.]\", shape=\"box\"] ;\n" \
+                "value = [ 0.  3.]\"] ;\n" \
                 "0 -> 2 ;\n" \
                 "}"
 
@@ -46,13 +47,14 @@ def test_graphviz_toy():
     export_graphviz(clf, out_file=out, feature_names=["feature0", "feature1"])
     contents1 = out.getvalue()
     contents2 = "digraph Tree {\n" \
+                "node [shape=box] ;\n" \
                 "0 [label=\"feature0 <= 0.0000\\ngini = 0.5\\n" \
-                "samples = 6\", shape=\"box\"] ;\n" \
+                "samples = 6\"] ;\n" \
                 "1 [label=\"gini = 0.0000\\nsamples = 3\\n" \
-                "value = [ 3.  0.]\", shape=\"box\"] ;\n" \
+                "value = [ 3.  0.]\"] ;\n" \
                 "0 -> 1 ;\n" \
                 "2 [label=\"gini = 0.0000\\nsamples = 3\\n" \
-                "value = [ 0.  3.]\", shape=\"box\"] ;\n" \
+                "value = [ 0.  3.]\"] ;\n" \
                 "0 -> 2 ;\n" \
                 "}"
 
@@ -63,11 +65,12 @@ def test_graphviz_toy():
     export_graphviz(clf, out_file=out, max_depth=0)
     contents1 = out.getvalue()
     contents2 = "digraph Tree {\n" \
+                "node [shape=box] ;\n" \
                 "0 [label=\"X[0] <= 0.0000\\ngini = 0.5\\n" \
-                "samples = 6\", shape=\"box\"] ;\n" \
-                "1 [label=\"(...)\", shape=\"box\"] ;\n" \
+                "samples = 6\"] ;\n" \
+                "1 [label=\"(...)\"] ;\n" \
                 "0 -> 1 ;\n" \
-                "2 [label=\"(...)\", shape=\"box\"] ;\n" \
+                "2 [label=\"(...)\"] ;\n" \
                 "0 -> 2 ;\n" \
                 "}"
 
