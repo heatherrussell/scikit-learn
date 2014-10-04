@@ -43,6 +43,20 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
         The maximum depth of the representation. If None, the tree is fully
         generated.
 
+    pretty : boolean, optional (default=False)
+        Whether to draw tree representation with 'pretty' features:
+            - Colours indicating node majority class
+            - Leaf nodes drawn at base of tree
+            - Yes/No labels at first split
+            - Smoother fonts and rounded corners of node boxes
+
+    simple : boolean, optional (default=False)
+        Whether to draw tree representation with 'simple' text:
+            - Node majority class explicitly shown
+            - Error metric not shown
+            - Node class proportions shown for all nodes
+            - Node sample percentage shown instead of absolute numbers
+
     Examples
     --------
     >>> from sklearn.datasets import load_iris
@@ -175,7 +189,9 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
 
         leaves = None
         if pretty or simple:
-            leaves = np.sum(np.array(recurse_subtree(tree, node_id, values=[])), axis=0)
+            leaves = np.sum(np.array(recurse_subtree(tree,
+                                                     node_id,
+                                                     values=[])), axis=0)
             leaves = leaves / leaves.sum()
             if colours is None:
                 colours = colour_brew(tree.n_classes[0])
