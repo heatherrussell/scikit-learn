@@ -10,8 +10,6 @@ This module defines export functions for decision trees.
 #          Trevor Stephens <trev.stephens@gmail.com>
 # Licence: BSD 3 clause
 
-import warnings
-
 import numpy as np
 
 from ..externals import six
@@ -57,10 +55,9 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
             - 'true' : Show True/False labels at first split
             - 'id' : Show the ID number on each node
             - 'metric' : Show the error metric at each node
-            - 'class' : Show the majority class at each node
+            - 'class' : Show majority class at each node (classification only)
             - 'values' : Show the class breakdown at each node
                 - default is to show this only for the leaf nodes
-                - for regression this is equivalent to 'class'
             - 'samples' : Show the number of samples in each node
             - 'proportion' : Change the display of 'values' and/or 'samples'
                              to be proportions and percentages respectively
@@ -93,21 +90,20 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
         if hasattr(plot_options, '__iter__'):
             bad_options = set(plot_options) - valid_options
             good_options = set(plot_options) & valid_options
-            if len(good_options) == 0:
-                warnings.warn("No valid plot options, using defaults.")
-            elif len(bad_options) != 0:
-                warnings.warn("Invalid plot options:" + str(bad_options))
+            if len(bad_options) != 0:
+                raise ValueError("Invalid plot options provided: " +
+                                 str(list(bad_options)))
             if len(good_options) != 0:
+                # If empty list supplied, use defaults
                 final_options = good_options
         else:
-            warnings.warn("Expected list-type object, using defaults.")
+            raise ValueError("Expected list-type object for plot_options.")
 
         return final_options, len(recurse_options & final_options) > 0
 
     def colour_brew(n):
         # For regression n == 1, but we need two colours
         n = max(2, n)
-
         # Initialize saturation & value; calculate chroma & value shift
         s, v = 0.75, 0.9
         c = s * v
@@ -145,12 +141,22 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
 
         return colours
 
-    def get_colour(colours, value):
+    def get_colour(colours, value, bounds):
         # Find the appropriate colour & intensity for a node
-        colour = [c for c in colours[list(value).index(value.max())]]
-        sorted_values = sorted(value, reverse=True)
-        alpha = int(255 * (sorted_values[0] - sorted_values[1]) /
-                    (1 - sorted_values[1]))
+        if bounds is None:
+            # Classification tree
+            colour = [c for c in colours[list(value).index(value.max())]]
+            sorted_values = sorted(value, reverse=True)
+            alpha = int(255 * (sorted_values[0] - sorted_values[1]) /
+                        (1 - sorted_values[1]))
+        else:
+            # Regression tree
+            colour = [c for c in colours[int(value > bounds[1])]]
+            alpha = int(255 * min(1., ((value - bounds[1]) /
+                                       (bounds[int(value > bounds[1]) * 2] -
+                                        bounds[1]))))
+
+        # Return html colour code in #RRGGBBAA format
         colour.append(alpha)
         return '#' + str(bytearray(colour)).encode('hex')
 
@@ -173,6 +179,7 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
                 # Regression tree
                 values.append(tree.value[node_id][0, :] *
                               float(tree.n_node_samples[node_id]))
+
         return values
 
     def node_to_str(tree, node_id, criterion, value=None):
@@ -189,16 +196,16 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
         else:
             feature = "X[%s]" % tree.feature[node_id]
 
-        # Should root note labels be drawn?
-        root_labels = 'label' in plot_options and node_id == 0
-
-        # Build up node string for plot options
+        # Build up node string as determined by plot_options
         node_string = ''
+        # Should root-node labels be drawn?
+        root_labels = 'label' in plot_options and node_id == 0
         if 'id' in plot_options:
             if 'labels' in plot_options or root_labels:
                 node_string += 'node '
             node_string += '#' + str(node_id) + '\\n'
         if tree.children_left[node_id] != _tree.TREE_LEAF:
+            # Always write node decision criteria, except for leaves
             node_string += '%s <= %s\\n' % (feature,
                                             round(tree.threshold[node_id], 4))
         if 'metric' in plot_options:
@@ -211,29 +218,31 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
             if 'proportion' in plot_options:
                 percent = (100. * tree.n_node_samples[node_id] /
                            float(tree.n_node_samples[0]))
-                node_string += str(round(percent, 1)) + '%' + '\\n'
+                node_string += str(round(percent, 1)) + '%\\n'
             else:
                 node_string += str(tree.n_node_samples[node_id]) + '\\n'
-        if 'values' in plot_options:
+        if (('values' in plot_options and tree.n_outputs == 1) or
+                tree.children_left[node_id] == _tree.TREE_LEAF):
             if 'labels' in plot_options or root_labels:
                 node_string += 'value = '
-            if 'proportion' in plot_options:
-                value = value / value.sum()
-                node_string += str([round(v, 2) for v in value]) + '\\n'
+            if 'proportion' in plot_options or tree.n_classes[0] == 1:
+                value = value / tree.n_node_samples[node_id]
+            if 'proportion' in plot_options and tree.n_classes[0] != 1:
+                node_string += str(np.around(value, 2)) + '\\n'
             else:
-                node_string += str(value) + '\\n'
-        elif tree.children_left[node_id] == _tree.TREE_LEAF:
-            if 'labels' in plot_options or root_labels:
-                node_string += 'value = '
-            node_string += str(value) + '\\n'
-        if 'class' in plot_options:
+                node_string += str(np.around(value, 4)) + '\\n'
+        if ('class' in plot_options and
+                tree.n_classes[0] != 1 and
+                tree.n_outputs == 1):
+            # Only done for single-output classification trees
             if 'labels' in plot_options or root_labels:
                 node_string += 'class = '
             node_string += str(list(value).index(value.max()))
 
-        # Clean up
+        # Clean up any trailing newlines
         if node_string[-2:] == '\\n':
             node_string = node_string[:-2]
+
         return node_string
 
     def recurse(tree, node_id, criterion, parent=None, depth=0, colours=None):
@@ -243,6 +252,7 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
         left_child = tree.children_left[node_id]
         right_child = tree.children_right[node_id]
 
+        # Collect ranks for 'leaf' option in plot_options
         if left_child == _tree.TREE_LEAF:
             ranks['leaves'].append(str(node_id))
         elif str(depth) not in ranks:
@@ -250,10 +260,13 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
         else:
             ranks[str(depth)].append(str(node_id))
 
+        # Gather sub-tree's leaf node classifications if required
         leaves = None
-        if subtree_required:
+        if subtree_required and tree.n_outputs == 1:
             leaves = np.sum(np.array(recurse_subtree(tree, node_id)), axis=0)
-        if 'filled' in plot_options and colours is None:
+        if ('filled' in plot_options and
+                colours is None and
+                tree.n_outputs == 1):
             colours = colour_brew(tree.n_classes[0])
 
         # Add node with description
@@ -263,8 +276,19 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
                            % (node_id,
                               node_to_str(tree, node_id, criterion, leaves)))
             if 'filled' in plot_options:
-                out_file.write(', fillcolor="%s"'
-                               % (get_colour(colours, leaves / leaves.sum())))
+                if tree.n_outputs == 1:
+                    regression_max_min = None
+                    if tree.n_classes == 1:
+                        regression_max_min = (np.min(tree.value),
+                                              np.mean(tree.value),
+                                              np.max(tree.value))
+                    node_colour = get_colour(colours,
+                                             (leaves /
+                                              tree.n_node_samples[node_id]),
+                                             regression_max_min)
+                else:
+                    node_colour = '#FFFFFF'
+                out_file.write(', fillcolor="%s"' % node_colour)
             out_file.write('] ;\n')
 
             if parent is not None:
@@ -276,11 +300,11 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
                 if 'true' in plot_options:
                     root_labels = ('True', 'False')
                 if parent == 0 and root_labels is not None:
-                    out_file.write(' [labelangle=45, labeldistance=2.5')
+                    out_file.write(' [labeldistance=2.5, labelangle=')
                     if node_id == 1:
-                        out_file.write(', headlabel="%s"]' % root_labels[0])
+                        out_file.write('45, headlabel="%s"]' % root_labels[0])
                     else:
-                        out_file.write(', headlabel="%s"]' % root_labels[1])
+                        out_file.write('-45, headlabel="%s"]' % root_labels[1])
                 out_file.write(' ;\n')
 
             if left_child != _tree.TREE_LEAF:
@@ -328,24 +352,27 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
         out_file.write('] ;\n')
 
         # Specify graph & edge aesthetics
-        if 'leaf' in plot_options:
-            out_file.write('graph [ranksep=equally, splines=polyline] ;\n')
+        if len(set(['leaf', 'yes', 'true']) & plot_options) > 1:
+            out_file.write('graph [')
+            if 'leaf' in plot_options:
+                out_file.write('ranksep=equally, ')
+            out_file.write('splines=polyline] ;\n')
         if 'helvetica' in plot_options:
             out_file.write('edge [fontname=helvetica] ;\n')
         if 'rotate' in plot_options:
             out_file.write('rankdir=LR ;\n')
 
+        # Now recurse the tree and add node & edge attributes
         if isinstance(decision_tree, _tree.Tree):
             recurse(decision_tree, 0, criterion="impurity")
         else:
             recurse(decision_tree.tree_, 0, criterion=decision_tree.criterion)
 
+        # If required, draw leaf nodes at same depth as each other
         if 'leaf' in plot_options:
-            # Draw each node of the same depth at the same level,
-            # and all terminal/leaf nodes at the bottom of the tree
             for rank in ranks:
                 out_file.write("{rank=same ; " +
-                               ", ".join(r for r in ranks[rank]) + "}\n")
+                               ", ".join(r for r in ranks[rank]) + "} ;\n")
         out_file.write("}")
 
     finally:
