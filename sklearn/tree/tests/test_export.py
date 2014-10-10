@@ -60,6 +60,26 @@ def test_graphviz_toy():
 
     assert_equal(contents1, contents2)
 
+    # Test plot_options
+    out = StringIO()
+    export_graphviz(clf, out_file=out,
+                    plot_options=['leaf', 'filled', 'values'])
+    contents1 = out.getvalue()
+    contents2 = 'digraph Tree {\n' \
+                'node [shape=box, style="filled", color="black"] ;\n' \
+                'graph [ranksep=equally, splines=polyline] ;\n' \
+                '0 [label="X[0] <= 0.0\\n[ 3.  3.]", ' \
+                'fillcolor="#e5813900"] ;\n' \
+                '1 [label="[ 3.  0.]", fillcolor="#e58139ff"] ;\n' \
+                '0 -> 1 ;\n' \
+                '2 [label="[ 0.  3.]", fillcolor="#399de5ff"] ;\n' \
+                '0 -> 2 ;\n' \
+                '{rank=same ; 0} ;\n' \
+                '{rank=same ; 1; 2} ;\n' \
+                '}'
+
+    assert_equal(contents1, contents2)
+
     # Test max_depth
     out = StringIO()
     export_graphviz(clf, out_file=out, max_depth=0)
