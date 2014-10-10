@@ -300,11 +300,16 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
                 if 'true' in plot_options:
                     root_labels = ('True', 'False')
                 if parent == 0 and root_labels is not None:
+                    root_angles = np.array([45, -45])
+                    if 'rotate' in plot_options:
+                        root_angles *= -1
                     out_file.write(' [labeldistance=2.5, labelangle=')
                     if node_id == 1:
-                        out_file.write('45, headlabel="%s"]' % root_labels[0])
+                        out_file.write('%d, headlabel="%s"]'
+                                       % (root_angles[0], root_labels[0]))
                     else:
-                        out_file.write('-45, headlabel="%s"]' % root_labels[1])
+                        out_file.write('%d, headlabel="%s"]'
+                                       % (root_angles[1], root_labels[1]))
                 out_file.write(' ;\n')
 
             if left_child != _tree.TREE_LEAF:
@@ -372,7 +377,7 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
         if 'leaf' in plot_options:
             for rank in ranks:
                 out_file.write("{rank=same ; " +
-                               ", ".join(r for r in ranks[rank]) + "} ;\n")
+                               "; ".join(r for r in ranks[rank]) + "} ;\n")
         out_file.write("}")
 
     finally:
