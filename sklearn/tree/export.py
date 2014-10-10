@@ -352,7 +352,7 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
         out_file.write('] ;\n')
 
         # Specify graph & edge aesthetics
-        if len(set(['leaf', 'yes', 'true']) & plot_options) > 1:
+        if len(set(['leaf', 'yes', 'true']) & plot_options) > 0:
             out_file.write('graph [')
             if 'leaf' in plot_options:
                 out_file.write('ranksep=equally, ')
