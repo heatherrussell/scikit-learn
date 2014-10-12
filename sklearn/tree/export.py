@@ -380,7 +380,7 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
 
         # If required, draw leaf nodes at same depth as each other
         if 'leaf' in plot_options:
-            for rank in ranks:
+            for rank in sorted(ranks):
                 out_file.write("{rank=same ; " +
                                "; ".join(r for r in ranks[rank]) + "} ;\n")
         out_file.write("}")
