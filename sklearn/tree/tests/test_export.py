@@ -102,8 +102,19 @@ def test_graphviz_errors():
     clf = DecisionTreeClassifier(max_depth=3, min_samples_split=1)
     clf.fit(X, y)
 
+    # Check feature_names error
     out = StringIO()
     assert_raises(IndexError, export_graphviz, clf, out, feature_names=[])
+
+    # Check parse_options for invalid options
+    out = StringIO()
+    assert_raises(ValueError, export_graphviz, clf, out,
+                  plot_options=['class', 'fooed', 'id'])
+
+    # Check parse_options for wrong type
+    out = StringIO()
+    assert_raises(ValueError, export_graphviz, clf, out,
+                  plot_options='filled')
 
 
 if __name__ == "__main__":
