@@ -158,7 +158,12 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
 
         # Return html colour code in #RRGGBBAA format
         colour.append(alpha)
-        return '#' + str(bytearray(colour)).encode('hex')
+        
+        hex_codes = [str(i) for i in range(10)]
+        hex_codes.extend(['a', 'b', 'c', 'd', 'e', 'f'])
+        colour = [hex_codes[c // 16] + hex_codes[c % 16] for c in colour]
+        
+        return '#' + ('').join(colour)
 
     def recurse_subtree(tree, node_id, values=None):
         # Gather the leaf node classifications for a subtree
