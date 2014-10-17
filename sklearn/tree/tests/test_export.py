@@ -33,10 +33,10 @@ def test_graphviz_toy():
                 "0 [label=\"X[0] <= 0.0\\ngini = 0.5\\n" \
                 "samples = 6\"] ;\n" \
                 "1 [label=\"gini = 0.0\\nsamples = 3\\n" \
-                "value = [ 3.  0.]\"] ;\n" \
+                "value = [3, 0]\"] ;\n" \
                 "0 -> 1 ;\n" \
                 "2 [label=\"gini = 0.0\\nsamples = 3\\n" \
-                "value = [ 0.  3.]\"] ;\n" \
+                "value = [0, 3]\"] ;\n" \
                 "0 -> 2 ;\n" \
                 "}"
 
@@ -51,10 +51,10 @@ def test_graphviz_toy():
                 "0 [label=\"feature0 <= 0.0\\ngini = 0.5\\n" \
                 "samples = 6\"] ;\n" \
                 "1 [label=\"gini = 0.0\\nsamples = 3\\n" \
-                "value = [ 3.  0.]\"] ;\n" \
+                "value = [3, 0]\"] ;\n" \
                 "0 -> 1 ;\n" \
                 "2 [label=\"gini = 0.0\\nsamples = 3\\n" \
-                "value = [ 0.  3.]\"] ;\n" \
+                "value = [0, 3]\"] ;\n" \
                 "0 -> 2 ;\n" \
                 "}"
 
@@ -68,12 +68,14 @@ def test_graphviz_toy():
     contents2 = 'digraph Tree {\n' \
                 'node [shape=box, style="filled", color="black"] ;\n' \
                 'graph [ranksep=equally, splines=polyline] ;\n' \
-                '0 [label="X[0] <= 0.0\\n[ 3.  3.]\\n' \
-                '0", fillcolor="#e5813900"] ;\n' \
-                '1 [label="[ 3.  0.]\\n0", fillcolor="#e58139ff"] ;\n' \
+                '0 [label=<X<SUB>0</SUB> &le; 0.0<br/>' \
+                '[3, 3]<br/>y<SUB>0</SUB>>, fillcolor="#e5813900"] ;\n' \
+                '1 [label=<[3, 0]<br/>y<SUB>0</SUB>>, ' \
+                'fillcolor="#e58139ff"] ;\n' \
                 '0 -> 1 [labeldistance=2.5, labelangle=45, ' \
                 'headlabel="Yes"] ;\n' \
-                '2 [label="[ 0.  3.]\\n1", fillcolor="#399de5ff"] ;\n' \
+                '2 [label=<[0, 3]<br/>y<SUB>1</SUB>>, ' \
+                'fillcolor="#399de5ff"] ;\n' \
                 '0 -> 2 [labeldistance=2.5, labelangle=-45, ' \
                 'headlabel="No"] ;\n' \
                 '{rank=same ; 0} ;\n' \
@@ -114,13 +116,13 @@ def test_graphviz_toy():
                 'node [shape=box, style="rounded,filled", ' \
                 'color="black"] ;\n' \
                 'rankdir=LR ;\n' \
-                '0 [label="X[0] <= 0.0\\nmse = 1.0", ' \
+                '0 [label=<X<SUB>0</SUB> &le; 0.0<br/>mse = 1.0>, ' \
                 'fillcolor="#e581397f"] ;\n' \
-                '1 [label="mse = 0.0\\nvalue = [-1.]", ' \
+                '1 [label=<mse = 0.0<br/>value = -1.0>, ' \
                 'fillcolor="#e5813900"] ;\n' \
                 '0 -> 1 [labeldistance=2.5, labelangle=-45, ' \
                 'headlabel="True"] ;\n' \
-                '2 [label="mse = 0.0\\nvalue = [ 1.]", ' \
+                '2 [label=<mse = 0.0<br/>value = 1.0>, ' \
                 'fillcolor="#e58139ff"] ;\n' \
                 '0 -> 2 [labeldistance=2.5, labelangle=45, ' \
                 'headlabel="False"] ;\n}'

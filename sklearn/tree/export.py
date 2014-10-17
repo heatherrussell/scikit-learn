@@ -18,7 +18,7 @@ from . import _tree
 
 
 def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
-                    max_depth=None, plot_options=None):
+                    max_depth=None, plot_options=None, class_names=None):
     """Export a decision tree in DOT format.
 
     This function generates a GraphViz representation of the decision tree,
@@ -43,26 +43,30 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
         The maximum depth of the representation. If None, the tree is fully
         generated.
 
-    plot_options : list of strings, optional (default=None)
-                   (which implies ['samples', 'metric', 'labels'])
+    plot_options : list of strings, optional
+                   (default=['labels', 'metric', 'ps', 'samples'])
         Plot the tree with aesthetic options. Available keywords include:
-            - 'filled' : Paint nodes to indicate majority class
-            - 'rounded' : Draw node boxes with rounded corners
-            - 'helvetica' : Replace Times-Roman font with Helvetica
-            - 'leaf' : Draw the leaf nodes at the bottom of the tree
-            - 'rotate' : Orient the tree left to right (default is top-down)
-            - 'yes' : Show Yes/No labels at first split
-            - 'true' : Show True/False labels at first split
-            - 'id' : Show the ID number on each node
-            - 'metric' : Show the error metric at each node
             - 'class' : Show majority class at each node (classification only)
-            - 'values' : Show the class breakdown at each node
-                - default is to show this only for the leaf nodes
-            - 'samples' : Show the number of samples in each node
+            - 'filled' : Paint nodes to indicate majority class
+            - 'helvetica' : Replace Times-Roman font with Helvetica
+            - 'id' : Show the ID number on each node
+            - 'label' : Same as 'labels', but for root node only
+            - 'labels' : Show informative labels for 'samples', 'metric', etc
+            - 'metric' : Show the error metric at each node
             - 'proportion' : Change the display of 'values' and/or 'samples'
                              to be proportions and percentages respectively
-            - 'labels' : Show informative labels for 'samples', 'metric', etc
-            - 'label' : Same as 'labels', but for root node only
+            - 'ps' : PostScript compatibility - ignores special characters
+            - 'leaf' : Draw the leaf nodes at the bottom of the tree
+            - 'rotate' : Orient the tree left to right (default is top-down)
+            - 'rounded' : Draw node boxes with rounded corners
+            - 'samples' : Show the number of samples in each node
+            - 'true' : Show True/False labels at first split
+            - 'values' : Show the class breakdown at each node
+                         (default is to show this only for the leaf nodes)
+            - 'yes' : Show Yes/No labels at first split
+
+    class_names : list of strings, optional (default=None)
+        Names of each of the classes.
 
     Examples
     --------
@@ -79,9 +83,9 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
 
     def parse_options():
         # Clean up plot_options and determine if subtree recursion is required
-        final_options = set(['samples', 'metric', 'labels'])
+        final_options = set(['labels', 'metric', 'ps', 'samples'])
         valid_options = set(['class', 'filled', 'helvetica', 'id', 'label',
-                             'labels', 'leaf', 'metric', 'proportion',
+                             'labels', 'leaf', 'metric', 'proportion', 'ps',
                              'rotate', 'rounded', 'samples', 'true', 'values',
                              'yes'])
         # The set of options that require subtree recursion
@@ -186,33 +190,42 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
 
     def node_to_str(tree, node_id, criterion, value=None):
 
-        # Build up node string as determined by plot_options
-        node_string = ''
-
         # Should labels be shown?
         labels = (('label' in plot_options and node_id == 0) or
                   'labels' in plot_options)
+        # PostScript compatibility
+        string_segments = ['<', '<SUB>', '</SUB>', '&le;', '<br/>', '>']
+        if 'ps' in plot_options:
+            string_segments = ['"', '[', ']', '<=', '\\n', '"']
+
+        # Build up node string as determined by plot_options
+        node_string = string_segments[0]
 
         if 'id' in plot_options:
             if labels:
                 node_string += 'node '
-            node_string += '#' + str(node_id) + '\\n'
+            node_string += '#' + str(node_id) + string_segments[4]
 
         if tree.children_left[node_id] != _tree.TREE_LEAF:
             # Always write node decision criteria, except for leaves
             if feature_names is not None:
                 feature = feature_names[tree.feature[node_id]]
             else:
-                feature = "X[%s]" % tree.feature[node_id]
-            node_string += '%s <= %s\\n' % (feature,
-                                            round(tree.threshold[node_id], 4))
+                feature = "X%s%s%s" % (string_segments[1],
+                                       tree.feature[node_id],
+                                       string_segments[2])
+            node_string += '%s %s %s%s' % (feature,
+                                           string_segments[3],
+                                           round(tree.threshold[node_id], 4),
+                                           string_segments[4])
 
         if 'metric' in plot_options:
             if not isinstance(criterion, six.string_types):
                 criterion = "impurity"
             if labels:
                 node_string += '%s = ' % criterion
-            node_string += str(round(tree.impurity[node_id], 4)) + '\\n'
+            node_string += (str(round(tree.impurity[node_id], 4)) +
+                            string_segments[4])
 
         if 'samples' in plot_options:
             if labels:
@@ -220,9 +233,11 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
             if 'proportion' in plot_options:
                 percent = (100. * tree.n_node_samples[node_id] /
                            float(tree.n_node_samples[0]))
-                node_string += str(round(percent, 1)) + '%\\n'
+                node_string += (str(round(percent, 1)) + '%' +
+                                string_segments[4])
             else:
-                node_string += str(tree.n_node_samples[node_id]) + '\\n'
+                node_string += (str(tree.n_node_samples[node_id]) +
+                                string_segments[4])
 
         if (('values' in plot_options and tree.n_outputs == 1) or
                 tree.children_left[node_id] == _tree.TREE_LEAF):
@@ -237,10 +252,17 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
                 value = value / tree.n_node_samples[node_id]
             if labels:
                 node_string += 'value = '
-            if tree.n_classes[0] != 1:
-                node_string += str(np.around(value, 2)) + '\\n'
+            if tree.n_classes[0] == 1:
+                value = np.around(value, 4)
+            elif 'proportion' in plot_options:
+                value = np.around(value, 2)
             else:
-                node_string += str(np.around(value, 4)) + '\\n'
+                value = value.astype(int)
+            value_text = str(value.astype(str))
+            value_text = value_text.replace("' '", ", ").replace("'", "")
+            if tree.n_classes[0] == 1 and tree.n_outputs == 1:
+                value_text = value_text.replace("[", "").replace("]", "")
+            node_string += value_text + string_segments[4]
 
         if ('class' in plot_options and
                 tree.n_classes[0] != 1 and
@@ -248,13 +270,23 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
             # Only done for single-output classification trees
             if labels:
                 node_string += 'class = '
-            node_string += str(list(value).index(value.max()))
 
+            if class_names is not None:
+                class_name = class_names[np.argmax(value)]
+            else:
+                class_name = "y%s%s%s" % (string_segments[1],
+                                          np.argmax(value),
+                                          string_segments[2])
+
+            node_string += class_name
+
+        # Clean up any trailing newlines
         if node_string[-2:] == '\\n':
-            # Clean up any trailing newlines
             node_string = node_string[:-2]
+        if node_string[-5:] == '<br/>':
+            node_string = node_string[:-5]
 
-        return node_string
+        return node_string + string_segments[-1]
 
     def recurse(tree, node_id, criterion, parent=None, depth=0, colours=None):
         if node_id == _tree.TREE_LEAF:
@@ -283,7 +315,7 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
             else:
                 ranks[str(depth)].append(str(node_id))
 
-            out_file.write('%d [label="%s"'
+            out_file.write('%d [label=%s'
                            % (node_id,
                               node_to_str(tree, node_id, criterion, leaves)))
             if 'filled' in plot_options:
@@ -353,7 +385,7 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
         ranks = {'leaves': []}
 
         if plot_options is None:
-            plot_options = ['samples', 'metric', 'labels']
+            plot_options = ['labels', 'metric', 'ps', 'samples']
         plot_options, subtree_required = parse_options()
 
         out_file.write('digraph Tree {\n')
