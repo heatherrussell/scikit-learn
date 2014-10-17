@@ -258,10 +258,12 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
                 value = np.around(value, 2)
             else:
                 value = value.astype(int)
-            value_text = str(value.astype(str))
+            # Strip whitespace
+            value_text = str(value.astype('S16')).replace("b'", "'")
             value_text = value_text.replace("' '", ", ").replace("'", "")
             if tree.n_classes[0] == 1 and tree.n_outputs == 1:
                 value_text = value_text.replace("[", "").replace("]", "")
+            value_text = value_text.replace("\\n", string_segments[4])
             node_string += value_text + string_segments[4]
 
         if ('class' in plot_options and
