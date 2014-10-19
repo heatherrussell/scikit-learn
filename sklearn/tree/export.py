@@ -66,7 +66,7 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
             - 'yes' : Show Yes/No labels at first split
 
     class_names : list of strings, optional (default=None)
-        Names of each of the classes.
+        Names of each of the classes in ascending numerical order.
 
     Examples
     --------
@@ -194,9 +194,10 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
         labels = (('label' in plot_options and node_id == 0) or
                   'labels' in plot_options)
         # PostScript compatibility
-        string_segments = ['<', '<SUB>', '</SUB>', '&le;', '<br/>', '>']
+        string_segments = ['<', '&#35;', '<SUB>', '</SUB>',
+                           '&le;', '<br/>', '>']
         if 'ps' in plot_options:
-            string_segments = ['"', '[', ']', '<=', '\\n', '"']
+            string_segments = ['"', '#', '[', ']', '<=', '\\n', '"']
 
         # Build up node string as determined by plot_options
         node_string = string_segments[0]
@@ -204,20 +205,21 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
         if 'id' in plot_options:
             if labels:
                 node_string += 'node '
-            node_string += '#' + str(node_id) + string_segments[4]
+            node_string += (string_segments[1] + str(node_id) +
+                            string_segments[5])
 
         if tree.children_left[node_id] != _tree.TREE_LEAF:
             # Always write node decision criteria, except for leaves
             if feature_names is not None:
                 feature = feature_names[tree.feature[node_id]]
             else:
-                feature = "X%s%s%s" % (string_segments[1],
+                feature = "X%s%s%s" % (string_segments[2],
                                        tree.feature[node_id],
-                                       string_segments[2])
+                                       string_segments[3])
             node_string += '%s %s %s%s' % (feature,
-                                           string_segments[3],
+                                           string_segments[4],
                                            round(tree.threshold[node_id], 4),
-                                           string_segments[4])
+                                           string_segments[5])
 
         if 'metric' in plot_options:
             if not isinstance(criterion, six.string_types):
@@ -225,7 +227,7 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
             if labels:
                 node_string += '%s = ' % criterion
             node_string += (str(round(tree.impurity[node_id], 4)) +
-                            string_segments[4])
+                            string_segments[5])
 
         if 'samples' in plot_options:
             if labels:
@@ -234,10 +236,10 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
                 percent = (100. * tree.n_node_samples[node_id] /
                            float(tree.n_node_samples[0]))
                 node_string += (str(round(percent, 1)) + '%' +
-                                string_segments[4])
+                                string_segments[5])
             else:
                 node_string += (str(tree.n_node_samples[node_id]) +
-                                string_segments[4])
+                                string_segments[5])
 
         if (('values' in plot_options and tree.n_outputs == 1) or
                 tree.children_left[node_id] == _tree.TREE_LEAF):
@@ -259,12 +261,12 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
             else:
                 value = value.astype(int)
             # Strip whitespace
-            value_text = str(value.astype('S16')).replace("b'", "'")
+            value_text = str(value.astype('S32')).replace("b'", "'")
             value_text = value_text.replace("' '", ", ").replace("'", "")
             if tree.n_classes[0] == 1 and tree.n_outputs == 1:
                 value_text = value_text.replace("[", "").replace("]", "")
-            value_text = value_text.replace("\\n", string_segments[4])
-            node_string += value_text + string_segments[4]
+            value_text = value_text.replace("\n", string_segments[5])
+            node_string += value_text + string_segments[5]
 
         if ('class' in plot_options and
                 tree.n_classes[0] != 1 and
@@ -276,9 +278,9 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
             if class_names is not None:
                 class_name = class_names[np.argmax(value)]
             else:
-                class_name = "y%s%s%s" % (string_segments[1],
+                class_name = "y%s%s%s" % (string_segments[2],
                                           np.argmax(value),
-                                          string_segments[2])
+                                          string_segments[3])
 
             node_string += class_name
 
