@@ -119,12 +119,13 @@ def test_graphviz_toy():
     out = StringIO()
     export_graphviz(clf, out_file=out,
                     plot_options=['filled', 'labels', 'metric', 'leaf',
-                                  'rotate', 'rounded', 'true'])
+                                  'rotate', 'rounded', 'true', 'helvetica'])
     contents1 = out.getvalue()
     contents2 = 'digraph Tree {\n' \
-                'node [shape=box, style="rounded,filled", ' \
-                'color="black"] ;\n' \
+                'node [shape=box, style="filled, rounded", color="black", ' \
+                'fontname=helvetica] ;\n' \
                 'graph [ranksep=equally, splines=polyline] ;\n' \
+                'edge [fontname=helvetica] ;\n' \
                 'rankdir=LR ;\n' \
                 '0 [label=<X<SUB>0</SUB> &le; 0.0<br/>mse = 1.0>, ' \
                 'fillcolor="#e581397f"] ;\n' \

@@ -399,7 +399,7 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
         rounded_filled = set(['rounded', 'filled']) & plot_options
         if len(rounded_filled) > 0:
             out_file.write(', style="%s", color="black"'
-                           % ",".join(rounded_filled))
+                           % ", ".join(sorted(rounded_filled)))
         if 'helvetica' in plot_options:
             out_file.write(', fontname=helvetica')
         out_file.write('] ;\n')
