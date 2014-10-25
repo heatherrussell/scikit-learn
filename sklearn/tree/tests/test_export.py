@@ -153,10 +153,10 @@ def test_graphviz_errors():
     out = StringIO()
     assert_raises(IndexError, export_graphviz, clf, out, feature_names=[])
 
-    # Check class_names error
+    # Check target_names error
     out = StringIO()
     assert_raises(IndexError, export_graphviz, clf, out,
-                  plot_options=['class'], class_names=[])
+                  plot_options=['class'], target_names=[])
 
     # Check parse_options for invalid options
     out = StringIO()

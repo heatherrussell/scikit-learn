@@ -18,7 +18,7 @@ from . import _tree
 
 
 def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
-                    max_depth=None, plot_options=None, class_names=None):
+                    max_depth=None, plot_options=None, target_names=None):
     """Export a decision tree in DOT format.
 
     This function generates a GraphViz representation of the decision tree,
@@ -65,8 +65,8 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
                          (default is to show this only for the leaf nodes)
             - 'yes' : Show Yes/No labels at first split
 
-    class_names : list of strings, optional (default=None)
-        Names of each of the classes in ascending numerical order.
+    target_names : list of strings, optional (default=None)
+        Names of each of the target classes in ascending numerical order.
 
     Examples
     --------
@@ -159,7 +159,6 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
 
         # Return html colour code in #RRGGBBAA format
         colour.append(alpha)
-
         hex_codes = [str(i) for i in range(10)]
         hex_codes.extend(['a', 'b', 'c', 'd', 'e', 'f'])
         colour = [hex_codes[c // 16] + hex_codes[c % 16] for c in colour]
@@ -182,9 +181,9 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
                 # Classification tree
                 values.append(tree.value[node_id][0, :])
             else:
-                # Regression tree
+                # Regression tree, need a weighted average
                 values.append(tree.value[node_id][0, :] *
-                              float(tree.n_node_samples[node_id]))
+                              float(tree.weighted_n_node_samples[node_id]))
 
         return values
 
@@ -193,7 +192,8 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
         # Should labels be shown?
         labels = (('label' in plot_options and node_id == 0) or
                   'labels' in plot_options)
-        # PostScript compatibility
+
+        # PostScript compatibility for special characters
         string_segments = ['<', '&#35;', '<SUB>', '</SUB>',
                            '&le;', '<br/>', '>']
         if 'ps' in plot_options:
@@ -249,19 +249,27 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
                 if tree.n_outputs == 1:
                     value = value[0, :]
                 if 'proportion' in plot_options and tree.n_classes[0] != 1:
-                    value = value / tree.n_node_samples[node_id]
+                    value = value / tree.weighted_n_node_samples[node_id]
             elif 'proportion' in plot_options or tree.n_classes[0] == 1:
-                value = value / tree.n_node_samples[node_id]
+                # For classification this will show the proportion of samples
+                # For regression this will find the weighted average
+                value = value / tree.weighted_n_node_samples[node_id]
             if labels:
                 node_string += 'value = '
             if tree.n_classes[0] == 1:
-                value = np.around(value, 4)
+                # Regression
+                value_text = np.around(value, 4)
             elif 'proportion' in plot_options:
-                value = np.around(value, 2)
+                # Classification
+                value_text = np.around(value, 2)
+            elif np.all(np.equal(np.mod(value, 1), 0)):
+                # Classification without floating-point weights
+                value_text = value.astype(int)
             else:
-                value = value.astype(int)
+                # Classification with floating-point weights
+                value_text = np.around(value, 4)
             # Strip whitespace
-            value_text = str(value.astype('S32')).replace("b'", "'")
+            value_text = str(value_text.astype('S32')).replace("b'", "'")
             value_text = value_text.replace("' '", ", ").replace("'", "")
             if tree.n_classes[0] == 1 and tree.n_outputs == 1:
                 value_text = value_text.replace("[", "").replace("]", "")
@@ -274,14 +282,12 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
             # Only done for single-output classification trees
             if labels:
                 node_string += 'class = '
-
-            if class_names is not None:
-                class_name = class_names[np.argmax(value)]
+            if target_names is not None:
+                class_name = target_names[np.argmax(value)]
             else:
                 class_name = "y%s%s%s" % (string_segments[2],
                                           np.argmax(value),
                                           string_segments[3])
-
             node_string += class_name
 
         # Clean up any trailing newlines
@@ -303,6 +309,8 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
         leaves = None
         if subtree_required and tree.n_outputs == 1:
             leaves = np.sum(np.array(recurse_subtree(tree, node_id)), axis=0)
+
+        # Get colours if required, only performed once
         if ('filled' in plot_options and
                 colours is None and
                 tree.n_outputs == 1):
@@ -322,17 +330,21 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
             out_file.write('%d [label=%s'
                            % (node_id,
                               node_to_str(tree, node_id, criterion, leaves)))
+
             if 'filled' in plot_options:
+                # Fetch appropriate colour for node
                 if tree.n_outputs == 1:
                     bounds = None
                     if tree.n_classes == 1:
+                        # Find max and min values in leaf nodes for regression
                         bounds = (np.min(tree.value[tree.feature < 0]),
                                   np.max(tree.value[tree.feature < 0]))
+                    samples = tree.weighted_n_node_samples[node_id]
                     node_colour = get_colour(colours,
-                                             (leaves /
-                                              tree.n_node_samples[node_id]),
+                                             (leaves / samples),
                                              bounds)
                 else:
+                    # If multi-output colour node as white
                     node_colour = '#FFFFFF'
                 out_file.write(', fillcolor="%s"' % node_colour)
             out_file.write('] ;\n')
@@ -369,6 +381,7 @@ def export_graphviz(decision_tree, out_file="tree.dot", feature_names=None,
 
             out_file.write('%d [label="(...)"' % node_id)
             if 'filled' in plot_options:
+                # Colour cropped nodes grey
                 out_file.write(', fillcolor="#C0C0C0"')
             out_file.write('] ;\n' % node_id)
 
