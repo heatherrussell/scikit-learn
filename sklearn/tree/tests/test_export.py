@@ -30,11 +30,14 @@ def test_graphviz_toy():
     contents1 = out.getvalue()
     contents2 = 'digraph Tree {\n' \
                 'node [shape=box] ;\n' \
-                '0 [label="X[0] <= 0.0\\ngini = 0.5\\nsamples = 6"] ;\n' \
+                '0 [label="X[0] <= 0.0\\ngini = 0.5\\nsamples = 6\\n' \
+                'value = [3, 3]"] ;\n' \
                 '1 [label="gini = 0.0\\nsamples = 3\\nvalue = [3, 0]"] ;\n' \
-                '0 -> 1 ;\n' \
+                '0 -> 1 [labeldistance=2.5, labelangle=45, ' \
+                'headlabel="True"] ;\n' \
                 '2 [label="gini = 0.0\\nsamples = 3\\nvalue = [0, 3]"] ;\n' \
-                '0 -> 2 ;\n' \
+                '0 -> 2 [labeldistance=2.5, labelangle=-45, ' \
+                'headlabel="False"] ;\n' \
                 '}'
 
     assert_equal(contents1, contents2)
@@ -45,34 +48,57 @@ def test_graphviz_toy():
     contents1 = out.getvalue()
     contents2 = 'digraph Tree {\n' \
                 'node [shape=box] ;\n' \
-                '0 [label="feature0 <= 0.0\\ngini = 0.5\\nsamples = 6"] ;\n' \
+                '0 [label="feature0 <= 0.0\\ngini = 0.5\\nsamples = 6\\n' \
+                'value = [3, 3]"] ;\n' \
                 '1 [label="gini = 0.0\\nsamples = 3\\nvalue = [3, 0]"] ;\n' \
-                '0 -> 1 ;\n' \
+                '0 -> 1 [labeldistance=2.5, labelangle=45, ' \
+                'headlabel="True"] ;\n' \
                 '2 [label="gini = 0.0\\nsamples = 3\\nvalue = [0, 3]"] ;\n' \
-                '0 -> 2 ;\n' \
+                '0 -> 2 [labeldistance=2.5, labelangle=-45, ' \
+                'headlabel="False"] ;\n' \
+                '}'
+
+    assert_equal(contents1, contents2)
+
+    # Test with class_names
+    out = StringIO()
+    export_graphviz(clf, out_file=out, class_names=["yes", "no"])
+    contents1 = out.getvalue()
+    contents2 = 'digraph Tree {\n' \
+                'node [shape=box] ;\n' \
+                '0 [label="X[0] <= 0.0\\ngini = 0.5\\nsamples = 6\\n' \
+                'value = [3, 3]\\nclass = yes"] ;\n' \
+                '1 [label="gini = 0.0\\nsamples = 3\\nvalue = [3, 0]\\n' \
+                'class = yes"] ;\n' \
+                '0 -> 1 [labeldistance=2.5, labelangle=45, ' \
+                'headlabel="True"] ;\n' \
+                '2 [label="gini = 0.0\\nsamples = 3\\nvalue = [0, 3]\\n' \
+                'class = no"] ;\n' \
+                '0 -> 2 [labeldistance=2.5, labelangle=-45, ' \
+                'headlabel="False"] ;\n' \
                 '}'
 
     assert_equal(contents1, contents2)
 
     # Test plot_options
     out = StringIO()
-    export_graphviz(clf, out_file=out,
-                    plot_options=['filled', 'values', 'labels', 'class',
-                                  'yes', 'samples', 'proportion'])
+    export_graphviz(clf, out_file=out, filled=True, metric=False,
+                    proportion=True, ps=False, rounded=True)
     contents1 = out.getvalue()
     contents2 = 'digraph Tree {\n' \
-                'node [shape=box, style="filled", color="black"] ;\n' \
+                'node [shape=box, style="filled, rounded", color="black", ' \
+                'fontname=helvetica] ;\n' \
+                'edge [fontname=helvetica] ;\n' \
                 '0 [label=<X<SUB>0</SUB> &le; 0.0<br/>samples = 100.0%<br/>' \
-                'value = [0.5, 0.5]<br/>class = y<SUB>0</SUB>>, ' \
-                'fillcolor="#e5813900"] ;\n' \
-                '1 [label=<samples = 50.0%<br/>value = [1.0, 0.0]<br/>' \
-                'class = y<SUB>0</SUB>>, fillcolor="#e58139ff"] ;\n' \
+                'value = [0.5, 0.5]>, fillcolor="#e5813900"] ;\n' \
+                '1 [label=<samples = 50.0%<br/>value = [1.0, 0.0]>, ' \
+                'fillcolor="#e58139ff"] ;\n' \
                 '0 -> 1 [labeldistance=2.5, labelangle=45, ' \
-                'headlabel="Yes"] ;\n' \
-                '2 [label=<samples = 50.0%<br/>value = [0.0, 1.0]<br/>' \
-                'class = y<SUB>1</SUB>>, fillcolor="#399de5ff"] ;\n' \
+                'headlabel="True"] ;\n' \
+                '2 [label=<samples = 50.0%<br/>value = [0.0, 1.0]>, ' \
+                'fillcolor="#399de5ff"] ;\n' \
                 '0 -> 2 [labeldistance=2.5, labelangle=-45, ' \
-                'headlabel="No"] ;\n' \
+                'headlabel="False"] ;\n' \
                 '}'
 
     assert_equal(contents1, contents2)
@@ -83,7 +109,8 @@ def test_graphviz_toy():
     contents1 = out.getvalue()
     contents2 = 'digraph Tree {\n' \
                 'node [shape=box] ;\n' \
-                '0 [label="X[0] <= 0.0\\ngini = 0.5\\nsamples = 6"] ;\n' \
+                '0 [label="X[0] <= 0.0\\ngini = 0.5\\nsamples = 6\\n' \
+                'value = [3, 3]"] ;\n' \
                 '1 [label="(...)"] ;\n' \
                 '0 -> 1 ;\n' \
                 '2 [label="(...)"] ;\n' \
@@ -94,13 +121,13 @@ def test_graphviz_toy():
 
     # Test max_depth with plot_options
     out = StringIO()
-    export_graphviz(clf, out_file=out, max_depth=0,
-                    plot_options=['filled', 'label', 'ps', 'id'])
+    export_graphviz(clf, out_file=out, max_depth=0, filled=True,
+                    node_ids=True)
     contents1 = out.getvalue()
     contents2 = 'digraph Tree {\n' \
                 'node [shape=box, style="filled", color="black"] ;\n' \
-                '0 [label="node #0\\nX[0] <= 0.0", ' \
-                'fillcolor="#e5813900"] ;\n' \
+                '0 [label="node #0\\nX[0] <= 0.0\\ngini = 0.5\\n' \
+                'samples = 6\\nvalue = [3, 3]", fillcolor="#e5813900"] ;\n' \
                 '1 [label="(...)", fillcolor="#C0C0C0"] ;\n' \
                 '0 -> 1 ;\n' \
                 '2 [label="(...)", fillcolor="#C0C0C0"] ;\n' \
@@ -117,9 +144,8 @@ def test_graphviz_toy():
     clf.fit(X, y)
 
     out = StringIO()
-    export_graphviz(clf, out_file=out,
-                    plot_options=['filled', 'labels', 'metric', 'leaf',
-                                  'rotate', 'rounded', 'true', 'helvetica'])
+    export_graphviz(clf, out_file=out, filled=True, leaf=True, rotate=True,
+                    rounded=True)
     contents1 = out.getvalue()
     contents2 = 'digraph Tree {\n' \
                 'node [shape=box, style="filled, rounded", color="black", ' \
@@ -127,13 +153,13 @@ def test_graphviz_toy():
                 'graph [ranksep=equally, splines=polyline] ;\n' \
                 'edge [fontname=helvetica] ;\n' \
                 'rankdir=LR ;\n' \
-                '0 [label=<X<SUB>0</SUB> &le; 0.0<br/>mse = 1.0>, ' \
-                'fillcolor="#e581397f"] ;\n' \
-                '1 [label=<mse = 0.0<br/>value = -1.0>, ' \
+                '0 [label="X[0] <= 0.0\\nmse = 1.0\\nsamples = 6\\n' \
+                'value = 0.0", fillcolor="#e581397f"] ;\n' \
+                '1 [label="mse = 0.0\\nsamples = 3\\nvalue = -1.0", ' \
                 'fillcolor="#e5813900"] ;\n' \
                 '0 -> 1 [labeldistance=2.5, labelangle=-45, ' \
                 'headlabel="True"] ;\n' \
-                '2 [label=<mse = 0.0<br/>value = 1.0>, ' \
+                '2 [label="mse = 0.0\\nsamples = 3\\nvalue = 1.0", ' \
                 'fillcolor="#e58139ff"] ;\n' \
                 '0 -> 2 [labeldistance=2.5, labelangle=45, ' \
                 'headlabel="False"] ;\n' \
@@ -153,20 +179,9 @@ def test_graphviz_errors():
     out = StringIO()
     assert_raises(IndexError, export_graphviz, clf, out, feature_names=[])
 
-    # Check target_names error
+    # Check class_names error
     out = StringIO()
-    assert_raises(IndexError, export_graphviz, clf, out,
-                  plot_options=['class'], target_names=[])
-
-    # Check parse_options for invalid options
-    out = StringIO()
-    assert_raises(ValueError, export_graphviz, clf, out,
-                  plot_options=['class', 'ni', 'the larch', 'id'])
-
-    # Check parse_options for wrong type
-    out = StringIO()
-    assert_raises(ValueError, export_graphviz, clf, out,
-                  plot_options='filled')
+    assert_raises(IndexError, export_graphviz, clf, out, class_names=[])
 
 
 if __name__ == "__main__":
